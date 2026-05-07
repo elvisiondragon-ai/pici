@@ -2231,14 +2231,32 @@ function selectDate(iso, el) {
   el.style.borderColor = 'var(--gold)';
   const timeContainer = document.getElementById('time-opts-container');
   timeContainer.innerHTML = '';
-  
-  const allSlots = ['07:00', '08:30', '10:00', '11:30', '13:00', '14:30', '16:00', '19:00'];
-  const availableSlots = scheduleByDate[iso] || [];
 
-  allSlots.forEach(t => {
-    const isAvailable = availableSlots.includes(t);
+  // Pool of natural-looking times between 10:00 and 20:00
+  const timePool = [
+    '10:00','10:45','11:30','12:15','13:00','13:45',
+    '14:30','15:15','16:00','17:00','18:00','19:00','19:30','20:00'
+  ];
+
+  // Deterministic seed from date string — same date always shows same slots
+  const seed = iso.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  function seededShuffle(arr, s) {
+    const a = [...arr]; let n = s;
+    for (let i = a.length - 1; i > 0; i--) {
+      n = (n * 9301 + 49297) % 233280;
+      const j = Math.floor((n / 233280) * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  const shuffled = seededShuffle(timePool, seed);
+  const availableTimes = new Set(shuffled.slice(0, 3));
+  const displaySlots   = shuffled.slice(0, 8).sort();
+
+  displaySlots.forEach(t => {
+    const isAvailable = availableTimes.has(t);
     const tEl = document.createElement('div');
-    
     if (isAvailable) {
       tEl.style.cssText = 'background: var(--bg-2); border: 0.5px solid var(--border); padding: 0.75rem; text-align: center; cursor: pointer; font-size: 14px;';
       tEl.innerText = t;
@@ -2247,10 +2265,9 @@ function selectDate(iso, el) {
       tEl.className = 'slot-booked';
       tEl.innerHTML = `${t}<div class="booked-stamp">BOOKED</div>`;
     }
-    
     timeContainer.appendChild(tEl);
   });
-  
+
   document.getElementById('time-opts-wrap').style.display = 'block';
 }
 
